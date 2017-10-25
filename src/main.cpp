@@ -200,6 +200,7 @@ int main() {
 	//aaron's code
 //	int lane=1;
 //	double ref_vel = 45.0; //mph
+	
 
   h.onMessage([&map_waypoints_x,&map_waypoints_y,&map_waypoints_s,&map_waypoints_dx,&map_waypoints_dy](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length,
                      uWS::OpCode opCode) {
@@ -208,6 +209,10 @@ int main() {
     // The 2 signifies a websocket event
     //auto sdata = string(data).substr(0, length);
     //cout << sdata << endl;
+    
+    double ref_vel = 45.0; //mph
+		int lane = 1;
+	
     if (length && length > 2 && data[0] == '4' && data[1] == '2') {
 
       auto s = hasData(data);
@@ -242,8 +247,7 @@ int main() {
 
 //aaron's code
 			int prev_size = previous_path_x.size();
-			double ref_vel = 45.0; //mph
-			int lane = 1;
+		
 //end
 
 		
@@ -258,12 +262,13 @@ int main() {
 			double ref_x = car_x;
 			double ref_y = car_y;
 			double ref_yaw = deg2rad(car_yaw);
-			
+			//cout << "car_speed " << car_speed;
+			double car_speed_mps=car_speed * 0.447;
 			//if previous size is almst empty, use the car as starting reference
-			if(prev_size<2)
+			if(prev_size < 2)
 			{
-				double prev_car_x = car_x -cos(car_yaw);
-				double prev_car_y = car_y-sin(car_yaw);
+				double prev_car_x = car_x - cos(car_yaw);
+				double prev_car_y = car_y - sin(car_yaw);
 				
 				ptsx.push_back(prev_car_x);
 				ptsx.push_back(car_x);
@@ -277,7 +282,7 @@ int main() {
 				ref_y = previous_path_y[prev_size-1];
 			
 				double ref_x_prev = previous_path_x[prev_size-2];
-				double ref_y_prev = ref_y = previous_path_y[prev_size-2];
+				double ref_y_prev = previous_path_y[prev_size-2];
 				ref_yaw=atan2(ref_y-ref_y_prev, ref_x-ref_x_prev);
 				
 				ptsx.push_back(ref_x_prev);
@@ -299,6 +304,7 @@ int main() {
 			ptsy.push_back(next_wp0[1]);
 			ptsy.push_back(next_wp1[1]);
 			ptsy.push_back(next_wp2[1]);
+			
 			
 			for (int i=0; i < ptsx.size(); i++)
 			{
@@ -331,8 +337,8 @@ int main() {
         
       double target_x = 30.0;
       double target_y = s(target_x);
-//      double target_dist = distance(0, 0, target_x, target_y);
- 	    double target_dist = sqrt((target_x*target_x)+(target_y*target_y));
+	   	double target_dist = distance(0, 0, target_x, target_y);
+// 	    double target_dist = sqrt((target_x*target_x)+(target_y*target_y));
       
       double x_add_on = 0;
       
