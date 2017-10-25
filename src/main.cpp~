@@ -293,7 +293,7 @@ int main() {
 			if(too_close)
 			{
 				ref_vel -=0.224;
-			} else if (ref_vel < MAX_VEL0)
+			} else if (ref_vel < max_velo)
 			{
 				ref_vel +=0.224;
 			}
