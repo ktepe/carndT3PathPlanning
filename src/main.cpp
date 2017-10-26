@@ -199,11 +199,7 @@ int main() {
   	map_waypoints_s.push_back(s);
   	map_waypoints_dx.push_back(d_x);
   	map_waypoints_dy.push_back(d_y);
-  }
-
-	//aaron's code
-	
-	
+  }	
 
   h.onMessage([&map_waypoints_x,&map_waypoints_y,&map_waypoints_s,&map_waypoints_dx,&map_waypoints_dy](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length,
                      uWS::OpCode opCode) {
@@ -213,8 +209,6 @@ int main() {
     //auto sdata = string(data).substr(0, length);
     //cout << sdata << endl;
     
-    //double ref_vel = 45.0; //mph
-		//int lane = 1;
 	
     if (length && length > 2 && data[0] == '4' && data[1] == '2') {
 
@@ -252,11 +246,7 @@ int main() {
 		
 
           	// TODO: define a path made up of (x,y) points that the car will visit sequentially every .02 seconds
-//aaron's code start
-//create widely spaced (x,y) waypoints, evenly spaced at 30m
-
-
-//aaron's code
+//aaron's (from walk though of the project) code starts
 			int prev_size = previous_path_x.size();
 
 //sensor fusion from walk through
@@ -266,8 +256,9 @@ int main() {
 			}
 			
 			bool too_close = false;
-			// i is the car, [6] is the d value, [3] and [4] vx and vy of car
-			// [5] is the s value 
+			// i is the i_th car in sensor fusion, 
+			// [3] and [4] are vx and vy of the car
+			// [5] and [6] are s and d values of the car,
 		
 			for (int i=0; i < sensor_fusion.size(); i++)
 			{
@@ -304,7 +295,7 @@ int main() {
 			
 //end of sensor fusion
 
-	
+//aaron's from walkthrough 30m apart way points for spline	
 
 			vector<double> ptsx;
 			vector<double> ptsy;
