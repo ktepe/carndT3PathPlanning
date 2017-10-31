@@ -9,15 +9,15 @@
 
 using namespace std;
 
-class DrivingBehavior {
+class DrivingBehave {
 
 	public:
 		vector<int> WatchList(vector<vector<double>> sensor_fusion, vector<double> car_data);
 		//DrivingBehavoir();
 		
-	}
+	};
 
-vector<int> DrivingBehavior::WatchList(vector<vector<double>> sensor_fusion, vector<double> car_data)
+vector<int> DrivingBehave::WatchList(vector<vector<double>> sensor_fusion, vector<double> car_data)
 {
 #if ket_debug
 	cout << car_data[0];
