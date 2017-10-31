@@ -12,11 +12,9 @@
 #include "spline.h"
 #include <list>
 #include <iterator>
-#ifndef KET_H
-#include "ket.h"
-#endif
-//#define ket_debug 1
-//#define ket_debug_ 0
+
+#define ket_debug 1
+#define ket_debug_ 0
 
 using namespace std;
 
@@ -182,7 +180,7 @@ vector<double> getXY(double s, double d, const vector<double> &maps_s, const vec
 
 int lane=1;
 double ref_vel = 0.0; //mph
-double max_velo = 49.0;
+double max_velo = 45.0;
 	
 int main() {
   uWS::Hub h;
@@ -229,8 +227,7 @@ int main() {
     //auto sdata = string(data).substr(0, length);
     //cout << sdata << endl;
     
-		vector<double> car_data;
-		
+	
     if (length && length > 2 && data[0] == '4' && data[1] == '2') {
 
       auto s = hasData(data);
@@ -251,13 +248,6 @@ int main() {
           	double car_yaw = j[1]["yaw"];
           	double car_speed = j[1]["speed"];
 
-						
-						car_data.push_back(car_x);
-						car_data.push_back(car_y);
-						car_data.push_back(car_s);
-						car_data.push_back(car_d);
-						car_data.push_back(car_speed);
-						
           	// Previous path data given to the Planner
           	auto previous_path_x = j[1]["previous_path_x"];
           	auto previous_path_y = j[1]["previous_path_y"];
@@ -269,18 +259,13 @@ int main() {
           	auto sensor_fusion = j[1]["sensor_fusion"];
 
           	json msgJson;
-          	
-          	vector<double> new_watch_list=DrivingBehavior::DrivingBevoir(); 
-						new_watch_list.WatchList(sensor_fusion, car_data);
+
+
 		
 
           	// TODO: define a path made up of (x,y) points that the car will visit sequentially every .02 seconds
 //aaron's (from walk though of the project) code starts
 			int prev_size = previous_path_x.size();
-			
-#if ket_debug_
-cout<< " prev_size " << prev_size;
-#endif
 
 //sensor fusion from walk through
 			if(prev_size > 0)
@@ -293,41 +278,28 @@ cout<< " prev_size " << prev_size;
 			// [3] and [4] are vx and vy of the car
 			// [5] and [6] are s and d values of the car,
 		
-			
-			
 			list<int> watch_list;
 			watch_list.clear();
 			
-			
-			
 			for (int i=0; i < sensor_fusion.size(); i++)
 			{
-
-			
-				
-				double vx = sensor_fusion[i][3];
-				double vy = sensor_fusion[i][4];
-				double check_speed = sqrt(vx*vx+vy*vy);
-				double check_car_s = sensor_fusion[i][5];
-				check_car_s+=((double) prev_size*0.02*check_speed);
-				bool check_front_car=	(((check_car_s > car_s) && ((check_car_s-car_s) <50)));
-				bool check_behind_car= (((check_car_s < car_s) && ((car_s - check_car_s) <40)));
-				if ( check_front_car || check_behind_car) 
-//						(car_s - check_car_s) <30 )
-				{ // there is behind or infront of our car or behind us
-					// add the index of this car to the list
-#if ket_debug
-					watch_list.push_back(sensor_fusion[i][0]);				
-					cout << "ith sensor is added to watch list "<< i << endl;
-					cout <<  check_car_s-car_s  << " " << check_car_s-car_s<<endl;
-#endif
-#if ket_debug
+#if ket_debug_
 				cout << "  " << car_x << " " << car_y << " " << car_s << " "<< car_d << endl;				
 				cout << sensor_fusion[i][0] << " " << sensor_fusion[i][1] << " " << sensor_fusion[i][2] << " " << sensor_fusion[i][5] << " "<< sensor_fusion[i][6] << endl;
 #endif
-
-
+				float _s=sensor_fusion[i][5];
+				
+//				if ( fabs(car_s-_s) <= 30.0) //  ((_s-car_s) <= 20.0)) 
+				if(1)
+				{ // there is behind or infornt of our car
+					// add the index of this car to the list
+#if ket_debug
+					watch_list.push_back(i);				
+					cout << "ith sensor is added to watch list "<< i << endl;
+					cout <<  car_s -_s << " " << _s-car_s<<endl;
+#endif
 				} 
+
 			}
 
 #if ket_debug
@@ -364,7 +336,7 @@ cout<< " prev_size " << prev_size;
 		
 						check_car_s+=((double) prev_size*0.02*check_speed);
 					
-						if ((check_car_s > car_s) && ((check_car_s-car_s) <50))
+						if ((check_car_s > car_s) && ((check_car_s-car_s) <30))
 						{	// need to slow down and look for a change of lane opportunity
 							too_close = true;
 #if ket_debug
