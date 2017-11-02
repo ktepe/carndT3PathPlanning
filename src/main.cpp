@@ -183,7 +183,8 @@ vector<double> getXY(double s, double d, const vector<double> &maps_s, const vec
 int lane=1;
 double ref_vel = 0.0; //mph
 double max_velo = 49.0;
-	
+double wp_step_size = 40.0;
+
 int main() {
   uWS::Hub h;
 
@@ -229,7 +230,7 @@ int main() {
     //auto sdata = string(data).substr(0, length);
     //cout << sdata << endl;
     
-		vector<double> car_data;
+	vector<double> car_data;
 		
     if (length && length > 2 && data[0] == '4' && data[1] == '2') {
 
@@ -252,11 +253,11 @@ int main() {
           	double car_speed = j[1]["speed"];
 
 						
-						car_data.push_back(car_x);
-						car_data.push_back(car_y);
-						car_data.push_back(car_s);
-						car_data.push_back(car_d);
-						car_data.push_back(car_speed);
+			car_data.push_back(car_x);
+			car_data.push_back(car_y);
+			car_data.push_back(car_s);
+			car_data.push_back(car_d);
+			car_data.push_back(car_speed);
 						
           	// Previous path data given to the Planner
           	auto previous_path_x = j[1]["previous_path_x"];
@@ -269,14 +270,14 @@ int main() {
           	auto sensor_fusion = j[1]["sensor_fusion"];
 
           	json msgJson;
-          	
-          	vector<double> new_watch_list=DrivingBehavior(); 
-						new_watch_list.WatchList(sensor_fusion, car_data);
-		
-
+			
+          	int prev_size = previous_path_x.size();
+          	/*
+			DrivingBehave new_watch_list;
+			auto watch_list=new_watch_list.WatchList(sensor_fusion, car_data, prev_size);	
+			*/
           	// TODO: define a path made up of (x,y) points that the car will visit sequentially every .02 seconds
 //aaron's (from walk though of the project) code starts
-			int prev_size = previous_path_x.size();
 			
 #if ket_debug_
 cout<< " prev_size " << prev_size;
@@ -292,61 +293,26 @@ cout<< " prev_size " << prev_size;
 			// i is the i_th car in sensor fusion, 
 			// [3] and [4] are vx and vy of the car
 			// [5] and [6] are s and d values of the car,
-		
-			
-			
-			list<int> watch_list;
+/*
 			watch_list.clear();
-			
-			
-			
-			for (int i=0; i < sensor_fusion.size(); i++)
-			{
-
-			
-				
-				double vx = sensor_fusion[i][3];
-				double vy = sensor_fusion[i][4];
-				double check_speed = sqrt(vx*vx+vy*vy);
-				double check_car_s = sensor_fusion[i][5];
-				check_car_s+=((double) prev_size*0.02*check_speed);
-				bool check_front_car=	(((check_car_s > car_s) && ((check_car_s-car_s) <50)));
-				bool check_behind_car= (((check_car_s < car_s) && ((car_s - check_car_s) <40)));
-				if ( check_front_car || check_behind_car) 
-//						(car_s - check_car_s) <30 )
-				{ // there is behind or infront of our car or behind us
-					// add the index of this car to the list
-#if ket_debug
-					watch_list.push_back(sensor_fusion[i][0]);				
-					cout << "ith sensor is added to watch list "<< i << endl;
-					cout <<  check_car_s-car_s  << " " << check_car_s-car_s<<endl;
-#endif
-#if ket_debug
-				cout << "  " << car_x << " " << car_y << " " << car_s << " "<< car_d << endl;				
-				cout << sensor_fusion[i][0] << " " << sensor_fusion[i][1] << " " << sensor_fusion[i][2] << " " << sensor_fusion[i][5] << " "<< sensor_fusion[i][6] << endl;
-#endif
-
-
-				} 
-			}
-
-#if ket_debug
-			cout << " watch list :";
-			showlist(watch_list);
-#endif
-			
-			
+			for (int i=0; i< sensor_fusion.size(); i++)
+				watch_list.push_back(i);
+							
+	
 			if (watch_list.empty() != 1)
 			{
-			
+
 #if ket_debug
 	cout << "watch_list is not empty" << endl;
 #endif
-				for (int it=0; it< watch_list.size(); it++)
+*/
+				for (int i=0; i< sensor_fusion.size(); i++)
 				{
+					/*
 					int i=watch_list.back();
 					watch_list.pop_back();
-#if ket_debug
+					*/
+#if ket_debug_
 					cout << "i th in the list "<< i << endl;
 #endif
 				
@@ -362,15 +328,22 @@ cout<< " prev_size " << prev_size;
 						double check_speed = sqrt(vx*vx+vy*vy);
 						double check_car_s = sensor_fusion[i][5];
 		
-						check_car_s+=((double) prev_size*0.02*check_speed);
+						//check_car_s+=((double) prev_size*0.02*check_speed);
 					
-						if ((check_car_s > car_s) && ((check_car_s-car_s) <50))
+						if ((check_car_s > car_s) && ((check_car_s-car_s) <40))
 						{	// need to slow down and look for a change of lane opportunity
 							too_close = true;
+
+							
+							DrivingBehave db;
+							
+							int current_lane=db.switch_lane(sensor_fusion, car_data, prev_size); 
 #if ket_debug
 							cout << check_car_s << " " << car_s << "  too close "<< endl;
+							cout<< "current_lane " << current_lane << endl;
+
 #endif
-					
+							
 							if(lane > 0)
 							{
 								lane = 0;
@@ -378,7 +351,7 @@ cout<< " prev_size " << prev_size;
 						}
 					}		
 				}
-			}
+			//} if statement
 			
 			if(too_close)
 			{
@@ -429,10 +402,10 @@ cout<< " prev_size " << prev_size;
 				ptsy.push_back(ref_y);
 			}
 
-//freenet add evenly 30 m spaced points ahead of the starting ref.
-			vector<double> next_wp0 = getXY(car_s+30, (2+4*lane), map_waypoints_s, map_waypoints_x, map_waypoints_y);
-			vector<double> next_wp1 = getXY(car_s+60, (2+4*lane), map_waypoints_s, map_waypoints_x, map_waypoints_y);
-			vector<double> next_wp2 = getXY(car_s+90, (2+4*lane), map_waypoints_s, map_waypoints_x, map_waypoints_y);
+//freenet add evenly wp_steps_size m spaced points ahead of the starting ref.
+			vector<double> next_wp0 = getXY(car_s+wp_step_size, (2+4*lane), map_waypoints_s, map_waypoints_x, map_waypoints_y);
+			vector<double> next_wp1 = getXY(car_s+2.0*wp_step_size, (2+4*lane), map_waypoints_s, map_waypoints_x, map_waypoints_y);
+			vector<double> next_wp2 = getXY(car_s+3.0*wp_step_size, (2+4*lane), map_waypoints_s, map_waypoints_x, map_waypoints_y);
 			
 			ptsx.push_back(next_wp0[0]);
 			ptsx.push_back(next_wp1[0]);
@@ -474,8 +447,8 @@ cout<< " prev_size " << prev_size;
         
       double target_x = 30.0;
       double target_y = s(target_x);
-	   	double target_dist = distance(0, 0, target_x, target_y);
-// 	    double target_dist = sqrt((target_x*target_x)+(target_y*target_y));
+	  double target_dist = distance(0, 0, target_x, target_y);
+// 	  double target_dist = sqrt((target_x*target_x)+(target_y*target_y));
       
       double x_add_on = 0;
       
@@ -500,9 +473,6 @@ cout<< " prev_size " << prev_size;
 				next_y_vals.push_back(y_point);
 				      
       }
-      
-      
-      
       
 // aaron's code ends
       

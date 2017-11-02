@@ -10,54 +10,71 @@
 using namespace std;
 
 class DrivingBehave {
-
+	private:
+		int _currentLane;
+	
 	public:
-		vector<int> WatchList(vector<vector<double>> sensor_fusion, vector<double> car_data);
+		int switch_lane(vector<vector<double>> sensor_fusion, vector<double> car_data, int prev_size);
 		//DrivingBehavoir();
-		
+		int identify_lane(double d);
 	};
 
-vector<int> DrivingBehave::WatchList(vector<vector<double>> sensor_fusion, vector<double> car_data)
+int DrivingBehave::identify_lane(double d)
 {
-#if ket_debug
-	cout << car_data[0];
-#endif
-	vector<int> value;
-	value.push_back(3);
-	return value;
+	if ( d < 4.0) 
+		{ _currentLane=0; 
+		  return _currentLane; }
+	if ( d >= 4.0 and d < 8.0)
+		{ _currentLane=1; return _currentLane;}
+	else 
+		{ _currentLane=2;
+		  return _currentLane;
+		}
+		
+	return -1;			
+	
 }
-
-/*	
-
-	for (int i=0; i < sensor_fusion.size(); i++)
-			{
-			
-				double vx = sensor_fusion[i][3];
-				double vy = sensor_fusion[i][4];
-				double check_speed = sqrt(vx*vx+vy*vy);
-				double check_car_s = sensor_fusion[i][5];
-				check_car_s+=((double) prev_size*0.02*check_speed);
-				bool check_front_car=	(((check_car_s > car_s) && ((check_car_s-car_s) <30)));
-				bool check_behind_car= (((check_car_s < car_s) && ((car_s - check_car_s) <20)));
-				if ( check_front_car || check_behind_car) 
-//						(car_s - check_car_s) <30 )
-				{ // there is behind or infront of our car or behind us
-					// add the index of this car to the list
-#if ket_debug
-					watch_list.push_back(sensor_fusion[i][0]);				
-					cout << "ith sensor is added to watch list "<< i << endl;
-					cout <<  check_car_s-car_s  << " " << check_car_s-car_s<<endl;
+	
+int DrivingBehave::switch_lane(vector<vector<double>> sensor_fusion, vector<double> car_data, int prev_size)
+{
+#if ket_debug_
+	cout << " watch list creation" <<car_data[0];
 #endif
-#if ket_debug
-				cout << "  " << car_x << " " << car_y << " " << car_s << " "<< car_d << endl;				
-				cout << sensor_fusion[i][0] << " " << sensor_fusion[i][1] << " " << sensor_fusion[i][2] << " " << sensor_fusion[i][5] << " "<< sensor_fusion[i][6] << endl;
-#endif
-
-
-
-
-}
-*/
-
-			
+	
+	double car_x=car_data[0];
+	double car_y=car_data[1];
+	double car_s=car_data[2];
+	double car_d=car_data[3];
+	double car_speed=car_data[4];
+	int car_lane=-1;
+	
+	if (identify_lane(car_d) != -1) car_lane=_current_lane;
+	
+	for (int i=0; i<sensor_fusion.size(); i++)
+	{
+		double vx = sensor_fusion[i][3];
+		double vy = sensor_fusion[i][4];
+		double check_speed = sqrt(vx*vx+vy*vy);
+		double check_car_s = sensor_fusion[i][5];
+		double check_car_d = sensor_fusion[i][6];
+		int check_car_lane=-1;
+		if (identify_lane(check_car_d) != -1) int check_car_lane =_current_lane;
+		
+		if (car_lane != check_car_lane)
+		{
+			//check car distance and car_speed, and identify if you would like to switch.
+		}
+		
+	
+	}	
+	
+	
+	
+	
+	
+	if (i != -1)
+		return _currentLane;
+	else
+		return -1;
+}			
 #endif //KET_H
