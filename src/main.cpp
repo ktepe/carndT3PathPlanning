@@ -337,7 +337,7 @@ cout<< " prev_size " << prev_size;
 							
 							DrivingBehave db;
 							
-							int current_lane=db.switch_lane(sensor_fusion, car_data, prev_size); 
+							int current_lane=db.if_change_lane(sensor_fusion, car_data, prev_size); 
 #if ket_debug
 							cout << check_car_s << " " << car_s << "  too close "<< endl;
 							cout<< "current_lane " << current_lane << endl;

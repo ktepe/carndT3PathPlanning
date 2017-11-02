@@ -1,4 +1,4 @@
-# Install script for directory: /mnt/c/Users/kemalt/linux/carndT3PathPlanning
+# Install script for directory: /home/kemalt/ulinux/carndT3PathPlanning
 
 # Set the install prefix
 if(NOT DEFINED CMAKE_INSTALL_PREFIX)
@@ -40,5 +40,5 @@ endif()
 
 string(REPLACE ";" "\n" CMAKE_INSTALL_MANIFEST_CONTENT
        "${CMAKE_INSTALL_MANIFEST_FILES}")
-file(WRITE "/mnt/c/Users/kemalt/linux/carndT3PathPlanning/build/${CMAKE_INSTALL_MANIFEST}"
+file(WRITE "/home/kemalt/ulinux/carndT3PathPlanning/build/${CMAKE_INSTALL_MANIFEST}"
      "${CMAKE_INSTALL_MANIFEST_CONTENT}")
