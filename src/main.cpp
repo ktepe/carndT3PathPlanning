@@ -307,7 +307,7 @@ cout<< " prev_size " << prev_size;
 #endif
 */
 				DrivingBehave db;
-				double car_lane_reward=5000.0;
+				double car_lane_reward=10000.0;
 				int car_lane=db.identify_lane(car_d);
 				vector<double> check_lane_reward;
 				for (int i=0; i< 3; i++) check_lane_reward.push_back(10000.0);
@@ -354,6 +354,7 @@ cout<< " prev_size " << prev_size;
 						{	// need to slow down and look for a change of lane opportunity
 							too_close = true;
 							car_lane_reward=db.lane_reward(car_s, check_car_s, 0, 0, true);
+							check_lane_reward[car_lane]= car_lane_reward;
 #if ket_debug
 							cout << check_car_s << " " << car_s << "  too close "<< endl;
 							cout<< "current_lane " << db.identify_lane(car_d) << " cur_lane_reward "<< car_lane_reward << endl;
@@ -371,31 +372,32 @@ cout<< " prev_size " << prev_size;
 				
 #if ket_debug
 			//for (int i=0; i< 3; i++) 
-				cout << "lanes 0-1-2: " << check_lane_reward[0] << " " << check_lane_reward[1] << " " << check_lane_reward[2] << endl;
+				cout << "lanes 0-1-2: " << check_lane_reward[0] << " " << check_lane_reward[1] << " " << check_lane_reward[2] << " " << car_lane_reward << endl;
 #endif
 
 			double lane_bias=2;
+			double min_reward=400;
 			if (car_lane == 2)
 			{ 
-				if (check_lane_reward[1] > car_lane_reward*lane_bias) 
+				if (check_lane_reward[1] > car_lane_reward*lane_bias and check_lane_reward[1] >=min_reward) 
 					lane=1;
 			}
 			//lane change 0->1;
 			
 			if (car_lane == 0)
 			{
-				if (check_lane_reward[0] > car_lane_reward*lane_bias) 
+				if (check_lane_reward[0] > car_lane_reward*lane_bias and check_lane_reward[0] >=min_reward) 
 					lane =1;
 			}			
 			//lane change 1->2 or 1->0 possible;
 			if (car_lane ==1)
 			{
-				if ((check_lane_reward[0] > check_lane_reward[2]) and (check_lane_reward[0] > car_lane_reward*lane_bias)) 
+				if ((check_lane_reward[0] > check_lane_reward[2]) and (check_lane_reward[0] > car_lane_reward*lane_bias) and (check_lane_reward[1] >=min_reward)) 
 					lane = 0;
 			}
 			if (car_lane ==1)
 			{
-				if ((check_lane_reward[2] > check_lane_reward[0]) and (check_lane_reward[2] > car_lane_reward*lane_bias)) 
+				if ((check_lane_reward[2] > check_lane_reward[0]) and (check_lane_reward[2] > car_lane_reward*lane_bias) and (check_lane_reward[1] >=min_reward)) 
 					lane = 2;
 			}
 			//ortherwise keep lane and reduce speed
