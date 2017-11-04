@@ -306,53 +306,106 @@ cout<< " prev_size " << prev_size;
 	cout << "watch_list is not empty" << endl;
 #endif
 */
+				DrivingBehave db;
+				double car_lane_reward=5000.0;
+				int car_lane=db.identify_lane(car_d);
+				vector<double> check_lane_reward;
+				for (int i=0; i< 3; i++) check_lane_reward.push_back(10000.0);
+				
+				for (int i=0; i< sensor_fusion.size(); i++)
+				{
+					float check_car_d = sensor_fusion[i][6];
+					int check_car_lane = db.identify_lane(check_car_d);
+					double check_car_s = sensor_fusion[i][5];
+					
+					if (check_car_lane!=car_lane)
+					{
+						double rew=db.lane_reward(car_s, check_car_s, 0, 0, 1);
+						
+						if ( rew < check_lane_reward[check_car_lane]) 
+							check_lane_reward[check_car_lane] = rew;
+					}	
+					
+				}
+				
+				
 				for (int i=0; i< sensor_fusion.size(); i++)
 				{
 					/*
 					int i=watch_list.back();
 					watch_list.pop_back();
 					*/
-#if ket_debug_
-					cout << "i th in the list "<< i << endl;
-#endif
-				
-					float d = sensor_fusion[i][6];
-
-				
-					//if ith car is in our lane
-					if (d < (2+lane*4+2) && d > (2+4*lane-2))
-					{
-				
-						double vx = sensor_fusion[i][3];
-						double vy = sensor_fusion[i][4];
-						double check_speed = sqrt(vx*vx+vy*vy);
-						double check_car_s = sensor_fusion[i][5];
+							
+					float check_car_d = sensor_fusion[i][6];
+					
+					int check_car_lane=db.identify_lane(check_car_d);
+					
+					double vx = sensor_fusion[i][3];
+					double vy = sensor_fusion[i][4];
+//					double check_car_speed = sqrt(vx*vx+vy*vy);
+					double check_car_s = sensor_fusion[i][5];
 		
 						//check_car_s+=((double) prev_size*0.02*check_speed);
-					
-						if ((check_car_s > car_s) && ((check_car_s-car_s) <40))
+					//if ith car is in our lane
+					if (car_lane == check_car_lane )
+					{
+									
+						if ((check_car_s > car_s) && ((check_car_s-car_s) <30))
 						{	// need to slow down and look for a change of lane opportunity
 							too_close = true;
-
-							
-							DrivingBehave db;
-							
-							int current_lane=db.if_change_lane(sensor_fusion, car_data, prev_size); 
+							car_lane_reward=db.lane_reward(car_s, check_car_s, 0, 0, true);
 #if ket_debug
 							cout << check_car_s << " " << car_s << "  too close "<< endl;
-							cout<< "current_lane " << current_lane << endl;
+							cout<< "current_lane " << db.identify_lane(car_d) << " cur_lane_reward "<< car_lane_reward << endl;
 
-#endif
+#endif										
+							goto lane_change;
 							
-							if(lane > 0)
-							{
-								lane = 0;
-							}
 						}
 					}		
 				}
 			//} if statement
+			lane_change:
+			//lane change 2->1;
+
+				
+#if ket_debug
+			//for (int i=0; i< 3; i++) 
+				cout << "lanes 0-1-2: " << check_lane_reward[0] << " " << check_lane_reward[1] << " " << check_lane_reward[2] << endl;
+#endif
+
+			double lane_bias=2;
+			if (car_lane == 2)
+			{ 
+				if (check_lane_reward[1] > car_lane_reward*lane_bias) 
+					lane=1;
+			}
+			//lane change 0->1;
 			
+			if (car_lane == 0)
+			{
+				if (check_lane_reward[0] > car_lane_reward*lane_bias) 
+					lane =1;
+			}			
+			//lane change 1->2 or 1->0 possible;
+			if (car_lane ==1)
+			{
+				if ((check_lane_reward[0] > check_lane_reward[2]) and (check_lane_reward[0] > car_lane_reward*lane_bias)) 
+					lane = 0;
+			}
+			if (car_lane ==1)
+			{
+				if ((check_lane_reward[2] > check_lane_reward[0]) and (check_lane_reward[2] > car_lane_reward*lane_bias)) 
+					lane = 2;
+			}
+			//ortherwise keep lane and reduce speed
+			
+/*				
+			if(lane > 0)
+			{
+				lane = 0;
+			}
+*/
 			if(too_close)
 			{
 				ref_vel -=0.224;
