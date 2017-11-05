@@ -9,7 +9,7 @@ To design a path planning algorithm for autonomous driving using finite state ma
 
 ### Project Description:
 
-In this project, a path finding algorithm is implemented to control the car's driving behaviour steer around the track in a most favorable path without an accident. The algoritm consists of several parts: (1) control the car's movement in a lane without exceeding the required acceleration and decelaration limits, and maximum speed and keeping the car not colliding with a car moving in front of it, if there is a car in front of our car, (2) idnetifying which lane is the best option for this car do continue its journey, and (2) steer the car to that lave without causing any accident. Once the car is in the new lane then continue the process. 
+In this project, a path finding algorithm is implemented to control the car's driving behaviour steer around the track in a most favorable path without an accident. The algoritm consists of several parts: (1) control the car's movement in a lane without exceeding the required acceleration and decelaration limits, and maximum speed and keeping the car not colliding with a car moving in front of it, if there is a car in front of our car, (2) idnetifying which lane is the best option for this car do continue its journey, and (3) steer the car to that lave without causing any accident. Once the car is in the new lane then continue the process. 
 
 Previous lectures on path planning were very useful in the implementation of the project. Also, the walk through session done by David Silver and Aaron Brown was very useful to get us started. Also, I particularly enhnaced some aspects of the walk through session in my imlementation.
 
@@ -52,7 +52,114 @@ for (int i=0; i< sensor_fusion.size(); i++)
 
 #### (2) Lane change.
 
-Once the car identifies it is too_close to the front car, the algorithm jumps to this section of the algorithm. The first task here is to identify if we can really 
+Once the car identifies it is too_close to the front car, the algorithm jumps to this section of the algorithm. The first task here is to identify if we can really change the lane. In order to do this, we need to calculate cost (reward) of changing lane. I do this calculation using the following method in ```DrivingBehcave``` class in ```ket.h``` file. The method is as follows:
+
+```C++
+	
+double DrivingBehave::lane_reward(double car_s, double check_car_s, double car_speed, double  check_car_speed, bool ahead)
+{ 
+	double reward = 0.0;
+	double speed_bias=0.05;
+	double distance_bias=1.0;
+	if(ahead) {
+		// distance^2+speed_dif^3
+		// if ahead car is faster better,
+		reward = distance_bias*(check_car_s-car_s)*(check_car_s-car_s);
+		//did not include the speed for this version
+		//reward+= speed_bias*(check_car_speed-car_speed)*(check_car_speed-car_speed)*(check_car_speed-car_speed);
+		return reward;
+	} 
+	else
+	{ //distance^2+speed_dif^3
+		// if behind car is slower is better
+		reward = distance_bias*(car_s-check_car_s)*(car_s-check_car_s);
+		//reward += speed_bias*(car_speed-check_car_speed)*(car_speed-check_car_speed)*(car_speed-check_car_speed);
+		return reward;
+	}	
+}
+```
+
+I although in the routine I included speed of the other vehicles in the reward, meaning that if the car in front is moving faster as well as ahead, this lane should be more advantageous. But in order to make the system simpler, I only used distance based cost (reward) value.
+
+Then, these rewards are calculated for each vehicle in sensor_fusion, then minimum of these rewards is assigned as reward for each lane as given by the following lines:
+ 
+```C++
+
+	DrivingBehave db;
+	double car_lane_reward=10000.0;
+	int car_lane=db.identify_lane(car_d);
+	vector<double> check_lane_reward;
+	for (int i=0; i< 3; i++) check_lane_reward.push_back(10000.0);
+	
+	for (int i=0; i< sensor_fusion.size(); i++)
+	{
+		float check_car_d = sensor_fusion[i][6];
+		int check_car_lane = db.identify_lane(check_car_d);
+		double check_car_s = sensor_fusion[i][5];
+		
+		if (check_car_lane!=car_lane)
+		{
+			double rew=db.lane_reward(car_s, check_car_s, 0, 0, 1);
+				
+			if ( rew < check_lane_reward[check_car_lane]) 
+				check_lane_reward[check_car_lane] = rew;
+			}	
+				
+		}
+	}
+```
+Once lane rewards are calculated, then by using the following logic, we identify if we need to keep the existing lane or switch to another lane as done by
+
+```C++
+	lane_change:
+			//lane change 2->1;				
+#if ket_debug
+			//for (int i=0; i< 3; i++) 
+				cout << "lanes 0-1-2: " << check_lane_reward[0] << " " << check_lane_reward[1] << " " << check_lane_reward[2] << " " << car_lane_reward << endl;
+#endif
+
+			double lane_bias=2;
+			double min_reward=400;
+			if (car_lane == 2)
+			{ 
+				if (check_lane_reward[1] > car_lane_reward*lane_bias and check_lane_reward[1] >=min_reward) 
+					lane=1;
+			}
+			//lane change 0->1;
+			
+			if (car_lane == 0)
+			{
+				if (check_lane_reward[0] > car_lane_reward*lane_bias and check_lane_reward[0] >=min_reward) 
+					lane =1;
+			}			
+			//lane change 1->2 or 1->0 possible;
+			if (car_lane ==1)
+			{
+				if ((check_lane_reward[0] > check_lane_reward[2]) and (check_lane_reward[0] > car_lane_reward*lane_bias) and (check_lane_reward[1] >=min_reward)) 
+					lane = 0;
+			}
+			if (car_lane ==1)
+			{
+				if ((check_lane_reward[2] > check_lane_reward[0]) and (check_lane_reward[2] > car_lane_reward*lane_bias) and (check_lane_reward[1] >=min_reward)) 
+					lane = 2;
+			}
+			//reduce speed
+
+			if(too_close)
+			{
+				ref_vel -=0.224;
+			} else if (ref_vel < max_velo)
+			{
+				ref_vel +=0.224;
+			}
+			
+
+```
+
+
+
+
+
 
 
 
