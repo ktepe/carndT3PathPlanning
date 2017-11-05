@@ -11,7 +11,48 @@ To design a path planning algorithm for autonomous driving using finite state ma
 
 In this project, a path finding algorithm is implemented to control the car's driving behaviour steer around the track in a most favorable path without an accident. The algoritm consists of several parts: (1) control the car's movement in a lane without exceeding the required acceleration and decelaration limits, and maximum speed and keeping the car not colliding with a car moving in front of it, if there is a car in front of our car, (2) idnetifying which lane is the best option for this car do continue its journey, and (2) steer the car to that lave without causing any accident. Once the car is in the new lane then continue the process. 
 
+Previous lectures on path planning were very useful in the implementation of the project. Also, the walk through session done by David Silver and Aaron Brown was very useful to get us started. Also, I particularly enhnaced some aspects of the walk through session in my imlementation.
 
+#### (1) Control of the movement in the lane.
+The car continuously monitor the sensor_fusion outputs to identify if there is a car in front of it. The section of the code which performs this part of the algorithm is given below but most critical section is if the front car is within 30m of our range, then we identify the car is too_close and move to lane_change section of the code. In identifying the car in front of us, I only used the distance between the vehicles and this was sufficient in this simple simulation case, but speed of the vehicle in front could also be utilized to better judge our actions. For example, if the front car is faster or at similar speed there would not be a need to move to the lane_change section.
+
+```C++
+for (int i=0; i< sensor_fusion.size(); i++)
+			{
+				float check_car_d = sensor_fusion[i][6];					
+				int check_car_lane=db.identify_lane(check_car_d);
+				
+				double vx = sensor_fusion[i][3];
+				double vy = sensor_fusion[i][4];
+//				double check_car_speed = sqrt(vx*vx+vy*vy);
+				double check_car_s = sensor_fusion[i][5];
+	
+				//check_car_s+=((double) prev_size*0.02*check_speed);
+				//if ith car is in our lane
+				if (car_lane == check_car_lane )
+				{		
+					if ((check_car_s > car_s) && ((check_car_s-car_s) <30))
+					{	// need to slow down and look for a change of lane opportunity
+						too_close = true;
+						car_lane_reward=db.lane_reward(car_s, check_car_s, 0, 0, true);
+						check_lane_reward[car_lane]= car_lane_reward;
+#if ket_debug
+						cout << check_car_s << " " << car_s << "  too close "<< endl;
+						cout<< "current_lane " << car_lane << " cur_lane_reward "<< car_lane_reward << endl;
+
+#endif										
+						goto lane_change;
+						
+					}
+				}		
+			}
+			lane_change:
+
+```
+
+#### (2) Lane change.
+
+Once the car identifies it is too_close to the front car, the algorithm jumps to this section of the algorithm. The first task here is to identify if we can really 
 
 
 
