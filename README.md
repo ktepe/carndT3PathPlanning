@@ -1,5 +1,25 @@
 # CarND-Path-Planning-Project
 Self-Driving Car Engineer Nanodegree Program
+
+## Kemal Tepe, ketepe@gmail.com
+
+### Objective: 
+
+To design a path planning algorithm for autonomous driving using finite state machines.
+
+### Project Description:
+
+In this project, a path finding algorithm is implemented to control the car's driving behaviour steer around the track in a most favorable path without an accident. The algoritm consists of several parts: (1) control the car's movement in a lane without exceeding the required acceleration and decelaration limits, and maximum speed and keeping the car not colliding with a car moving in front of it, if there is a car in front of our car, (2) idnetifying which lane is the best option for this car do continue its journey, and (2) steer the car to that lave without causing any accident. Once the car is in the new lane then continue the process. 
+
+
+
+
+
+
+---
+
+# CarND-Path-Planning-Project (original readme file)
+Self-Driving Car Engineer Nanodegree Program
    
 ### Simulator.
 You can download the Term3 Simulator which contains the Path Planning Project from the [releases tab (https://github.com/udacity/self-driving-car-sim/releases).
