@@ -9,167 +9,167 @@ To design a path planning algorithm for autonomous driving using finite state ma
 
 ### Project Description:
 
-In this project, a path finding algorithm is implemented to control the car's driving behaviour steer around the track in a most favorable path without an accident. The algoritm consists of several parts: (1) control the car's movement in a lane without exceeding the required acceleration and decelaration limits, and maximum speed and keeping the car not colliding with a car moving in front of it, if there is a car in front of our car, (2) idnetifying which lane is the best option for this car do continue its journey, and (3) steer the car to that lave without causing any accident. Once the car is in the new lane then continue the process. 
+In this project, a pathfinding algorithm is implemented to control the car's driving behavior steer around the track in a most favorable path without an accident. The algorithm consists of several parts: (1) control the car's movement in a lane without exceeding the required acceleration and deceleration limits, and maximum speed and keeping the car not colliding with a car moving in front of it, if there is a car in front of our car, (2) identifying which lane is the best option for this car to do continue its journey, and (3) steer the car such that without causing an accident. Once the car is in the new lane, then continue the process. 
 
-Previous lectures on path planning were very useful in the implementation of the project. Also, the walk through session done by David Silver and Aaron Brown was very useful to get us started. Also, I particularly enhnaced some aspects of the walk through session in my imlementation.
+Previous lectures on path planning were useful in the implementation of the project. Also, the walkthrough session was done by David Silver, and Aaron Brown was instrumental to get us started. Also, I enhanced some aspects of the walkthrough session in my implementation.
 
 #### (1) Control of the movement in the lane.
-The car continuously monitor the sensor_fusion outputs to identify if there is a car in front of it. The section of the code which performs this part of the algorithm is given below but most critical section is if the front car is within 30m of our range, then we identify the car is too_close and move to lane_change section of the code. In identifying the car in front of us, I only used the distance between the vehicles and this was sufficient in this simple simulation case, but speed of the vehicle in front could also be utilized to better judge our actions. For example, if the front car is faster or at similar speed there would not be a need to move to the lane_change section.
+The car continuously monitors the sensor_fusion outputs to identify if there is a car in front of it. The section of the code which performs this part of the algorithm is given below but the most critical section is if the front car is within 30m of our range, then we identify if the car is too_close and move to lane_change section of the code. In identifying the car in front of us, I only used the distance between the vehicles and this was sufficient in this simple simulation case, but the speed of the vehicle in front could also be utilized to better judge our actions. For example, if the front car is faster or at similar speed there would not be a need to move to the lane_change section.
 
 ```C++
 for (int i=0; i< sensor_fusion.size(); i++)
-			{
-				float check_car_d = sensor_fusion[i][6];					
-				int check_car_lane=db.identify_lane(check_car_d);
-				
-				double vx = sensor_fusion[i][3];
-				double vy = sensor_fusion[i][4];
-//				double check_car_speed = sqrt(vx*vx+vy*vy);
-				double check_car_s = sensor_fusion[i][5];
-	
-				//check_car_s+=((double) prev_size*0.02*check_speed);
-				//if ith car is in our lane
-				if (car_lane == check_car_lane )
-				{		
-					if ((check_car_s > car_s) && ((check_car_s-car_s) <30))
-					{	// need to slow down and look for a change of lane opportunity
-						too_close = true;
-						car_lane_reward=db.lane_reward(car_s, check_car_s, 0, 0, true);
-						check_lane_reward[car_lane]= car_lane_reward;
+            {
+                float check_car_d = sensor_fusion[i][6];                    
+                int check_car_lane=db.identify_lane(check_car_d);
+                
+                double vx = sensor_fusion[i][3];
+                double vy = sensor_fusion[i][4];
+//                double check_car_speed = sqrt(vx*vx+vy*vy);
+                double check_car_s = sensor_fusion[i][5];
+    
+                //check_car_s+=((double) prev_size*0.02*check_speed);
+                //if ith car is in our lane
+                if (car_lane == check_car_lane )
+                {        
+                    if ((check_car_s > car_s) && ((check_car_s-car_s) <30))
+                    {    // need to slow down and look for a change of lane opportunity
+                        too_close = true;
+                        car_lane_reward=db.lane_reward(car_s, check_car_s, 0, 0, true);
+                        check_lane_reward[car_lane]= car_lane_reward;
 #if ket_debug
-						cout << check_car_s << " " << car_s << "  too close "<< endl;
-						cout<< "current_lane " << car_lane << " cur_lane_reward "<< car_lane_reward << endl;
+                        cout << check_car_s << " " << car_s << "  too close "<< endl;
+                        cout<< "current_lane " << car_lane << " cur_lane_reward "<< car_lane_reward << endl;
 
-#endif										
-						goto lane_change;
-						
-					}
-				}		
-			}
-			lane_change:
+#endif                                        
+                        goto lane_change;
+                        
+                    }
+                }        
+            }
+            lane_change:
 
 ```
 
 #### (2) Lane change.
 
-Once the car identifies it is too_close to the front car, the algorithm jumps to this section of the algorithm. The first task here is to identify if we can really change the lane. In order to do this, we need to calculate cost (reward) of changing lane. I do this calculation using the following method in ```DrivingBehcave``` class in ```ket.h``` file. The method is as follows:
+Once the car identifies it is too_close to the front car, the algorithm jumps to this section of the algorithm. The first task here is to identify if we can really change the lane. In order to do this, we need to calculate the cost (reward) of changing lane. I do this calculation using the following method in ```DrivingBehcave``` class in ```ket.h``` file. The method is as follows:
 
 ```C++
-	
+    
 double DrivingBehave::lane_reward(double car_s, double check_car_s, double car_speed, double  check_car_speed, bool ahead)
 { 
-	double reward = 0.0;
-	double speed_bias=0.05;
-	double distance_bias=1.0;
-	if(ahead) {
-		// distance^2+speed_dif^3
-		// if ahead car is faster better,
-		reward = distance_bias*(check_car_s-car_s)*(check_car_s-car_s);
-		//did not include the speed for this version
-		//reward+= speed_bias*(check_car_speed-car_speed)*(check_car_speed-car_speed)*(check_car_speed-car_speed);
-		return reward;
-	} 
-	else
-	{ //distance^2+speed_dif^3
-		// if behind car is slower is better
-		reward = distance_bias*(car_s-check_car_s)*(car_s-check_car_s);
-		//reward += speed_bias*(car_speed-check_car_speed)*(car_speed-check_car_speed)*(car_speed-check_car_speed);
-		return reward;
-	}	
+    double reward = 0.0;
+    double speed_bias=0.05;
+    double distance_bias=1.0;
+    if(ahead) {
+        // distance^2+speed_dif^3
+        // if ahead car is faster better,
+        reward = distance_bias*(check_car_s-car_s)*(check_car_s-car_s);
+        //did not include the speed for this version
+        //reward+= speed_bias*(check_car_speed-car_speed)*(check_car_speed-car_speed)*(check_car_speed-car_speed);
+        return reward;
+    } 
+    else
+    { //distance^2+speed_dif^3
+        // if behind car is slower is better
+        reward = distance_bias*(car_s-check_car_s)*(car_s-check_car_s);
+        //reward += speed_bias*(car_speed-check_car_speed)*(car_speed-check_car_speed)*(car_speed-check_car_speed);
+        return reward;
+    }    
 }
 ```
 
-I although in the routine I included speed of the other vehicles in the reward, meaning that if the car in front is moving faster as well as ahead, this lane should be more advantageous. But in order to make the system simpler, I only used distance based cost (reward) value.
+I although in the routine I included speed of the other vehicles in the reward, meaning that if the car in front is moving faster as well as ahead, this lane should be more advantageous. But in order to make the system simpler, I only used distance-based cost (reward) value.
 
-Then, these rewards are calculated for each vehicle in sensor_fusion. Since I used distance based metric, it did not mather is the car in the next lanes are behind or front. However, we can also include speed of next lane vehicles in the reward. For example, if a car is faster than us and coming behind, it should be less advantageous to switch to a lane where a car is slower or equal speed than us. Once the rewards calculated from distance to each car in the sensor_fusion, then minimum of these rewards is assigned as reward for each lane as given by the following lines: 
+Then, these rewards are calculated for each vehicle in sensor_fusion. Since I used distance-based metric, it did not matter is the car in the next lanes are behind or front. However, we can also include speed of next lane vehicles in the reward. For example, if a car is faster than us and coming behind, it should be less advantageous to switch to a lane where a car is a slower or equal speed than us. Once the rewards calculated from the distance to each car in the sensor_fusion, then the minimum of these rewards is assigned as the reward for each lane as given by the following lines: 
  
 ```C++
 
-	DrivingBehave db;
-	double car_lane_reward=10000.0;
-	int car_lane=db.identify_lane(car_d);
-	vector<double> check_lane_reward;
-	for (int i=0; i< 3; i++) check_lane_reward.push_back(10000.0);
-	
-	for (int i=0; i< sensor_fusion.size(); i++)
-	{
-		float check_car_d = sensor_fusion[i][6];
-		int check_car_lane = db.identify_lane(check_car_d);
-		double check_car_s = sensor_fusion[i][5];
-		
-		if (check_car_lane!=car_lane)
-		{
-			double rew=db.lane_reward(car_s, check_car_s, 0, 0, 1);
-				
-			if ( rew < check_lane_reward[check_car_lane]) 
-				check_lane_reward[check_car_lane] = rew;
-			}	
-				
-		}
-	}
+    DrivingBehave db;
+    double car_lane_reward=10000.0;
+    int car_lane=db.identify_lane(car_d);
+    vector<double> check_lane_reward;
+    for (int i=0; i< 3; i++) check_lane_reward.push_back(10000.0);
+    
+    for (int i=0; i< sensor_fusion.size(); i++)
+    {
+        float check_car_d = sensor_fusion[i][6];
+        int check_car_lane = db.identify_lane(check_car_d);
+        double check_car_s = sensor_fusion[i][5];
+        
+        if (check_car_lane!=car_lane)
+        {
+            double rew=db.lane_reward(car_s, check_car_s, 0, 0, 1);
+                
+            if ( rew < check_lane_reward[check_car_lane]) 
+                check_lane_reward[check_car_lane] = rew;
+            }    
+                
+        }
+    }
 ```
 Once lane rewards are calculated, then by using the following logic, we identify if we need to keep the existing lane or switch to another lane as done by
 
 ```C++
-	lane_change:
-			//lane change 2->1;				
+    lane_change:
+            //lane change 2->1;                
 #if ket_debug
-			//for (int i=0; i< 3; i++) 
-				cout << "lanes 0-1-2: " << check_lane_reward[0] << " " << check_lane_reward[1] << " " << check_lane_reward[2] << " " << car_lane_reward << endl;
+            //for (int i=0; i< 3; i++) 
+                cout << "lanes 0-1-2: " << check_lane_reward[0] << " " << check_lane_reward[1] << " " << check_lane_reward[2] << " " << car_lane_reward << endl;
 #endif
 
-			double lane_bias=2;
-			double min_reward=400;
-			if (car_lane == 2)
-			{ 
-				if (check_lane_reward[1] > car_lane_reward*lane_bias and check_lane_reward[1] >=min_reward) 
-					lane=1;
-			}
-			//lane change 0->1;
-			
-			if (car_lane == 0)
-			{
-				if (check_lane_reward[0] > car_lane_reward*lane_bias and check_lane_reward[0] >=min_reward) 
-					lane =1;
-			}			
-			//lane change 1->2 or 1->0 possible;
-			if (car_lane ==1)
-			{
-				if ((check_lane_reward[0] > check_lane_reward[2]) and (check_lane_reward[0] > car_lane_reward*lane_bias) and (check_lane_reward[1] >=min_reward)) 
-					lane = 0;
-			}
-			if (car_lane ==1)
-			{
-				if ((check_lane_reward[2] > check_lane_reward[0]) and (check_lane_reward[2] > car_lane_reward*lane_bias) and (check_lane_reward[1] >=min_reward)) 
-					lane = 2;
-			}
-			//reduce speed
+            double lane_bias=2;
+            double min_reward=400;
+            if (car_lane == 2)
+            { 
+                if (check_lane_reward[1] > car_lane_reward*lane_bias and check_lane_reward[1] >=min_reward) 
+                    lane=1;
+            }
+            //lane change 0->1;
+            
+            if (car_lane == 0)
+            {
+                if (check_lane_reward[0] > car_lane_reward*lane_bias and check_lane_reward[0] >=min_reward) 
+                    lane =1;
+            }            
+            //lane change 1->2 or 1->0 possible;
+            if (car_lane ==1)
+            {
+                if ((check_lane_reward[0] > check_lane_reward[2]) and (check_lane_reward[0] > car_lane_reward*lane_bias) and (check_lane_reward[1] >=min_reward)) 
+                    lane = 0;
+            }
+            if (car_lane ==1)
+            {
+                if ((check_lane_reward[2] > check_lane_reward[0]) and (check_lane_reward[2] > car_lane_reward*lane_bias) and (check_lane_reward[1] >=min_reward)) 
+                    lane = 2;
+            }
+            //reduce speed
 
-			if(too_close)
-			{
-				ref_vel -=0.224;
-			} else if (ref_vel < max_velo)
-			{
-				ref_vel +=0.224;
-			}
-			
+            if(too_close)
+            {
+                ref_vel -=0.224;
+            } else if (ref_vel < max_velo)
+            {
+                ref_vel +=0.224;
+            }
+            
 
 ```
 
-Above, I limited lange changes only to next one at a time. In order to change a lane the lane reward of the new lane should be slightly higher to avoid oscilation between lanes, as well as to reinforce the idea to have a good reason to have a lane change. Here I used variable ```lane_bias``` to adjust this. Values between 1.2 and 2 provided good comprimize. Also if the reward is low, even it is more than our own lane, we should keep our labe and just adjust our speed. Then we adjust our speed again to make it slower or faster. 
+Above, I limited lane changes only to next one at a time. To change a lane the lane reward of the new lane should be slightly higher to avoid oscillation between lanes, as well as to reinforce the idea to have a good reason to have a lane change. Here I used variable ```lane_bias``` to adjust this. Values between 1.2 and 2 provided the good compromise. Also if the reward is low, even it is more than our own lane, we should keep our lane and just adjust our speed. Then we adjust our speed again to make it slower or faster. 
 
 
 
 (3) Identify the next path based on the lane change or no lane change.
 
-One the new lane (or keep the old lane) decision made and a speed are adjusted, then the next speed is to identify waypoint, then using the spline identify a path which provides a smooth transition to this new path. The following code is used to do this in the algorithm. The new path are identified first in car coordinate system, then tranfered to global (map) coordinate system. Then spline fuction identfies the smooth curve for car to follow in the simulation environment. This part is mostly redoing the walk through lecture's code. Aaron has a good explaination of this section.
+One the new lane (or keep the old lane) decision made and speed are adjusted, then the next speed is to identify waypoint, then using the spline provides a path which provides a smooth transition to this new path. The following code is used to do this in the algorithm. The new path are identified first in car coordinate system, then transferred to global (map) coordinate system. Then spline function identifies the smooth curve for the car to follow in the simulation environment. This part is mostly redoing the walkthrough lecture's code. Aaron has more comprehensive explanation of this section.
 
 
 ```C++
 vector<double> next_wp0 = getXY(car_s+wp_step_size, (2+4*lane), map_waypoints_s, map_waypoints_x, map_waypoints_y);
 vector<double> next_wp1 = getXY(car_s+2.0*wp_step_size, (2+4*lane), map_waypoints_s, map_waypoints_x, map_waypoints_y);
 vector<double> next_wp2 = getXY(car_s+3.0*wp_step_size, (2+4*lane), map_waypoints_s, map_waypoints_x, map_waypoints_y);
-			
+            
 ptsx.push_back(next_wp0[0]);
 ptsx.push_back(next_wp1[0]);
 ptsx.push_back(next_wp2[0]);
@@ -177,32 +177,31 @@ ptsx.push_back(next_wp2[0]);
 ptsy.push_back(next_wp0[1]);
 ptsy.push_back(next_wp1[1]);
 ptsy.push_back(next_wp2[1]);
-			
+            
 for (int i=0; i < ptsx.size(); i++)
 {
 // shift car ref angle to 0 deg.
 double shift_x = ptsx[i] - ref_x;
 double shift_y = ptsy[i] - ref_y;
-			
+            
 ptsx[i] = (shift_x*cos(0-ref_yaw) - shift_y*sin(0-ref_yaw));
 ptsy[i] = (shift_x*sin(0-ref_yaw) + shift_y*cos(0-ref_yaw));
 }
-			
+            
 tk::spline s;
-	
+    
 //set(x,y) points to the spline
 s.set_points(ptsx, ptsy);
 ```
 
 ### Conclusions:
 
-* A path finding algorithm based on a finite state machine is implemented. In this algorithm, the cost metric and lane change operation were kept simple enough to satisfy the project requirements. A more elaborative cost function which includes other vehicle's position and speed would be necessary in real life scenarios. 
+* A pathfinding algorithm based on a finite state machine is implemented. In this algorithm, the cost metric and lane change operation were kept simple enough to satisfy the project requirements. A more elaborative cost function which includes other vehicle's position and speed would be necessary for real-life scenarios. 
 
-* Also, I did not implemented circular nature of the track in my implementation. At the stransition where car_s is close to max_s, and other vehicles are s values are greater than max_s (then between [0, max-s]) there may be problems, but in my runs i did not notice any problem. 
+* Also, I did not implement circular nature of the track in my implementation. At the transition where car_s is close to max_s, and other vehicles are s values are greater than max_s (then between [0, max-s]) there may be problems, but in my runs, I did not notice any problem. 
 
 * Overall the project was interesting and very educational, as well as challenging. 
 
-* End of Report
 
 ---Remaining sections are verbatim copy of the Project's original Readme file----
 
