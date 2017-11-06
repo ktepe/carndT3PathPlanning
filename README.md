@@ -156,7 +156,7 @@ Once lane rewards are calculated, then by using the following logic, we identify
 
 ```
 
-Above, I limited lange changes only to next one at a time. In order to change a lane the lane reward of the new lane should be slightly higher. Here I used 2, this may be very conservative but in order to make a lane change, there should be a very compelling reason. Also if the reward is low, even it is more than our own lane, we should keep our labe and just adjust our speed. Then we adjust our speed again to make it slower or faster. 
+Above, I limited lange changes only to next one at a time. In order to change a lane the lane reward of the new lane should be slightly higher to avoid oscilation between lanes, as well as to reinforce the idea to have a good reason to have a lane change. Here I used variable ```lane_bias``` to adjust this. Values between 1.2 and 2 provided good comprimize. Also if the reward is low, even it is more than our own lane, we should keep our labe and just adjust our speed. Then we adjust our speed again to make it slower or faster. 
 
 
 
