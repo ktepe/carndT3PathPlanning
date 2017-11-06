@@ -313,7 +313,6 @@ Please (do your best to) stick to [Google's C++ style guide](https://google.gith
 Note: regardless of the changes you make, your project must be buildable using
 cmake and make!
 
-
 ## Call for IDE Profiles Pull Requests
 
 Help your fellow students!
