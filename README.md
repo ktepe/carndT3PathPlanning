@@ -81,7 +81,7 @@ double DrivingBehave::lane_reward(double car_s, double check_car_s, double car_s
 
 I although in the routine I included speed of the other vehicles in the reward, meaning that if the car in front is moving faster as well as ahead, this lane should be more advantageous. But in order to make the system simpler, I only used distance based cost (reward) value.
 
-Then, these rewards are calculated for each vehicle in sensor_fusion, then minimum of these rewards is assigned as reward for each lane as given by the following lines:
+Then, these rewards are calculated for each vehicle in sensor_fusion. Since I used distance based metric, it did not mather is the car in the next lanes are behind or front. However, we can also include speed of next lane vehicles in the reward. For example, if a car is faster than us and coming behind, it should be less advantageous to switch to a lane where a car is slower or equal speed than us. Once the rewards calculated from distance to each car in the sensor_fusion, then minimum of these rewards is assigned as reward for each lane as given by the following lines: 
  
 ```C++
 
@@ -156,15 +156,55 @@ Once lane rewards are calculated, then by using the following logic, we identify
 
 ```
 
+Above, I limited lange changes only to next one at a time. In order to change a lane the lane reward of the new lane should be slightly higher. Here I used 2, this may be very conservative but in order to make a lane change, there should be a very compelling reason. Also if the reward is low, even it is more than our own lane, we should keep our labe and just adjust our speed. Then we adjust our speed again to make it slower or faster. 
 
 
 
+(3) Identify the next path based on the lane change or no lane change.
+
+One the new lane (or keep the old lane) decision made and a speed are adjusted, then the next speed is to identify waypoint, then using the spline identify a path which provides a smooth transition to this new path. The following code is used to do this in the algorithm. The new path are identified first in car coordinate system, then tranfered to global (map) coordinate system. Then spline fuction identfies the smooth curve for car to follow in the simulation environment. This part is mostly redoing the walk through lecture's code. Aaron has a good explaination of this section.
 
 
+```C++
+vector<double> next_wp0 = getXY(car_s+wp_step_size, (2+4*lane), map_waypoints_s, map_waypoints_x, map_waypoints_y);
+vector<double> next_wp1 = getXY(car_s+2.0*wp_step_size, (2+4*lane), map_waypoints_s, map_waypoints_x, map_waypoints_y);
+vector<double> next_wp2 = getXY(car_s+3.0*wp_step_size, (2+4*lane), map_waypoints_s, map_waypoints_x, map_waypoints_y);
+			
+ptsx.push_back(next_wp0[0]);
+ptsx.push_back(next_wp1[0]);
+ptsx.push_back(next_wp2[0]);
 
+ptsy.push_back(next_wp0[1]);
+ptsy.push_back(next_wp1[1]);
+ptsy.push_back(next_wp2[1]);
+			
+for (int i=0; i < ptsx.size(); i++)
+{
+// shift car ref angle to 0 deg.
+double shift_x = ptsx[i] - ref_x;
+double shift_y = ptsy[i] - ref_y;
+			
+ptsx[i] = (shift_x*cos(0-ref_yaw) - shift_y*sin(0-ref_yaw));
+ptsy[i] = (shift_x*sin(0-ref_yaw) + shift_y*cos(0-ref_yaw));
+}
+			
+tk::spline s;
+	
+//set(x,y) points to the spline
+s.set_points(ptsx, ptsy);
+```
 
+### Conclusions:
 
----
+* A path finding algorithm based on a finite state machine is implemented. In this algorithm, the cost metric and lane change operation were kept simple enough to satisfy the project requirements. A more elaborative cost function which includes other vehicle's position and speed would be necessary in real life scenarios. 
+
+* Also, I did not implemented circular nature of the track in my implementation. At the stransition where car_s is close to max_s, and other vehicles are s values are greater than max_s (then between [0, max-s]) there may be problems, but in my runs i did not notice any problem. 
+
+* Overall the project was interesting and very educational, as well as challenging. 
+
+* End of Report
+
+---Remaining sections are verbatim copy of the Project's original Readme file----
 
 # CarND-Path-Planning-Project (original readme file)
 Self-Driving Car Engineer Nanodegree Program
