@@ -295,9 +295,9 @@ cout<< " prev_size " << prev_size;
 			// [5] and [6] are s and d values of the car,
 
 			DrivingBehave db;
-			double car_lane_reward=10000.0;
 			int car_lane=db.identify_lane(car_d);
 			vector<double> check_lane_reward;
+
 			for (int i=0; i< 3; i++) check_lane_reward.push_back(10000.0);
 			
 			for (int i=0; i< sensor_fusion.size(); i++)
@@ -305,7 +305,19 @@ cout<< " prev_size " << prev_size;
 				float check_car_d = sensor_fusion[i][6];
 				int check_car_lane = db.identify_lane(check_car_d);
 				double check_car_s = sensor_fusion[i][5];
-				
+				double rew=0.0;
+				if( (check_car_lane == car_lane) and (check_car_s < car_s-2))
+				{ // only calculate if check_car is in our labe and in front.
+					rew=db.lane_reward(car_s, check_car_s, 0, 0, 1);
+				}
+				else
+				{
+					rew=db.lane_reward(car_s, check_car_s, 0, 0, 1);
+				}
+				if ( rew < check_lane_reward[check_car_lane]) 
+					check_lane_reward[check_car_lane] = rew;
+/*				
+// if the car in our lane and infront of us, this is our check lane reward.
 				if (check_car_lane!=car_lane)
 				{
 					double rew=db.lane_reward(car_s, check_car_s, 0, 0, 1);
@@ -313,7 +325,7 @@ cout<< " prev_size " << prev_size;
 					if ( rew < check_lane_reward[check_car_lane]) 
 						check_lane_reward[check_car_lane] = rew;
 				}	
-				
+*/				
 			}
 			
 			
@@ -324,10 +336,10 @@ cout<< " prev_size " << prev_size;
 				
 				double vx = sensor_fusion[i][3];
 				double vy = sensor_fusion[i][4];
-//					double check_car_speed = sqrt(vx*vx+vy*vy);
+				double check_car_speed = sqrt(vx*vx+vy*vy);
 				double check_car_s = sensor_fusion[i][5];
 	
-				//check_car_s+=((double) prev_size*0.02*check_speed);
+				check_car_s+=((double) prev_size*0.02*check_car_speed);
 				//if ith car is in our lane
 				if (car_lane == check_car_lane )
 				{
@@ -335,11 +347,11 @@ cout<< " prev_size " << prev_size;
 					if ((check_car_s > car_s) && ((check_car_s-car_s) <30))
 					{	// need to slow down and look for a change of lane opportunity
 						too_close = true;
-						car_lane_reward=db.lane_reward(car_s, check_car_s, 0, 0, true);
-						check_lane_reward[car_lane]= car_lane_reward;
+						
+						check_lane_reward[car_lane]= db.lane_reward(car_s, check_car_s, 0, 0, true);
 #if ket_debug
 						cout << check_car_s << " " << car_s << "  too close "<< endl;
-						cout<< "current_lane " << car_lane << " cur_lane_reward "<< car_lane_reward << endl;
+						cout<< "current_lane " << car_lane << " cur_lane_reward "<< check_lane_reward[car_lane] << endl;
 
 #endif										
 						goto lane_change;
@@ -349,39 +361,42 @@ cout<< " prev_size " << prev_size;
 			}
 			lane_change:
 			//lane change 2->1;				
+			double car_lane_reward = check_lane_reward[car_lane];
 #if ket_debug
 			//for (int i=0; i< 3; i++) 
-				cout << "lanes 0-1-2: " << check_lane_reward[0] << " " << check_lane_reward[1] << " " << check_lane_reward[2] << " " << car_lane_reward << endl;
+				cout << "lanes 0-1-2: " << check_lane_reward[0] << " " << check_lane_reward[1] << " " << check_lane_reward[2] << "   current lane" << car_lane << " and current lane reward " <<car_lane_reward << endl;
 #endif
 
-			double lane_bias=2;
+			double lane_bias=1.3;
 			double min_reward=400;
+			bool if_not_lane_change = true;
 			if (car_lane == 2)
 			{ 
 				if (check_lane_reward[1] > car_lane_reward*lane_bias and check_lane_reward[1] >=min_reward) 
-					lane=1;
+				{	lane=1; if_not_lane_change= false; }
+				
 			}
 			//lane change 0->1;
 			
 			if (car_lane == 0)
 			{
-				if (check_lane_reward[0] > car_lane_reward*lane_bias and check_lane_reward[0] >=min_reward) 
-					lane =1;
+				if (check_lane_reward[1] > car_lane_reward*lane_bias and check_lane_reward[1] >=min_reward) 
+				{ lane =1; if_not_lane_change= false; }
 			}			
 			//lane change 1->2 or 1->0 possible;
-			if (car_lane ==1)
+			if (car_lane ==1 and (check_lane_reward[0] > check_lane_reward[2]))
 			{
-				if ((check_lane_reward[0] > check_lane_reward[2]) and (check_lane_reward[0] > car_lane_reward*lane_bias) and (check_lane_reward[1] >=min_reward)) 
-					lane = 0;
+				if ( (check_lane_reward[0] > car_lane_reward*lane_bias) and (check_lane_reward[0] >=min_reward)) 
+				{	lane = 0; if_not_lane_change= false; }
 			}
-			if (car_lane ==1)
+			else
 			{
-				if ((check_lane_reward[2] > check_lane_reward[0]) and (check_lane_reward[2] > car_lane_reward*lane_bias) and (check_lane_reward[1] >=min_reward)) 
-					lane = 2;
+				if ((check_lane_reward[2] > car_lane_reward*lane_bias) and (check_lane_reward[2] >=min_reward)) 
+				{lane = 2; if_not_lane_change= false; }
 			}
 			//reduce speed
 
-			if(too_close)
+			if(too_close and if_not_lane_change)
 			{
 				ref_vel -=0.224;
 			} else if (ref_vel < max_velo)
