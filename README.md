@@ -52,7 +52,7 @@ for (int i=0; i< sensor_fusion.size(); i++)
 
 #### (2) Lane change.
 
-Once the car identifies it is too_close to the front car, the algorithm jumps to this section of the algorithm. The first task here is to identify if we can really change the lane. In order to do this, we need to calculate the cost (reward) of changing lane. I do this calculation using the following method in ```DrivingBehcave``` class in ```ket.h``` file. The method is as follows:
+Once the car identifies if there is a better lane or if it is too_close to the front car, the algorithm jumps to this section of the algorithm. The first task here is to identify if we can really change the lane. In order to do this, we need to calculate the cost (reward) of changing lane. I do this calculation using the following method in ```DrivingBehcave``` class in ```ket.h``` file. The method is as follows:
 
 ```C++
     
@@ -111,53 +111,50 @@ Then, these rewards are calculated for each vehicle in sensor_fusion. Since I us
 Once lane rewards are calculated, then by using the following logic, we identify if we need to keep the existing lane or switch to another lane as done by
 
 ```C++
-    lane_change:
-            //lane change 2->1;                
+            lane_change:
+            //lane change 2->1;				
+	double car_lane_reward = check_lane_reward[car_lane];
 #if ket_debug
-            //for (int i=0; i< 3; i++) 
-                cout << "lanes 0-1-2: " << check_lane_reward[0] << " " << check_lane_reward[1] << " " << check_lane_reward[2] << " " << car_lane_reward << endl;
+cout << "lanes 0-1-2: " << check_lane_reward[0] << " " << check_lane_reward[1] << " " << check_lane_reward[2] << "   current lane" << car_lane << " and current lane reward " <<car_lane_reward << endl;
 #endif
-
-            double lane_bias=2;
+            double lane_bias=1.3;
             double min_reward=400;
-            if (car_lane == 2)
-            { 
-                if (check_lane_reward[1] > car_lane_reward*lane_bias and check_lane_reward[1] >=min_reward) 
-                    lane=1;
-            }
-            //lane change 0->1;
-            
-            if (car_lane == 0)
-            {
-                if (check_lane_reward[0] > car_lane_reward*lane_bias and check_lane_reward[0] >=min_reward) 
-                    lane =1;
-            }            
-            //lane change 1->2 or 1->0 possible;
-            if (car_lane ==1)
-            {
-                if ((check_lane_reward[0] > check_lane_reward[2]) and (check_lane_reward[0] > car_lane_reward*lane_bias) and (check_lane_reward[1] >=min_reward)) 
-                    lane = 0;
-            }
-            if (car_lane ==1)
-            {
-                if ((check_lane_reward[2] > check_lane_reward[0]) and (check_lane_reward[2] > car_lane_reward*lane_bias) and (check_lane_reward[1] >=min_reward)) 
-                    lane = 2;
-            }
-            //reduce speed
-
-            if(too_close)
-            {
-                ref_vel -=0.224;
-            } else if (ref_vel < max_velo)
-            {
-                ref_vel +=0.224;
-            }
-            
-
+	bool if_not_lane_change = true;
+	if (car_lane == 2)
+	{ 
+	           if (check_lane_reward[1] > car_lane_reward*lane_bias and check_lane_reward[1] >=min_reward) 
+		{	lane=1; if_not_lane_change= false; }
+	}
+	//lane change 0->1;
+	if (car_lane == 0)
+	{
+	            if (check_lane_reward[1] > car_lane_reward*lane_bias and check_lane_reward[1] >=min_reward) 
+		{ lane =1; if_not_lane_change= false; }
+	}			
+	//lane change 1->2 or 1->0 possible;
+	if (car_lane ==1 and (check_lane_reward[0] > check_lane_reward[2]))
+	{
+	            if ( (check_lane_reward[0] > car_lane_reward*lane_bias) and (check_lane_reward[0] >=min_reward)) 
+            	{ lane = 0; if_not_lane_change= false; }
+	}
+            else
+	{
+	            if ((check_lane_reward[2] > car_lane_reward*lane_bias) and (check_lane_reward[2] >=min_reward)) 
+		{ lane = 2; if_not_lane_change= false; }
+	}
+	//reduce speed
+	if(too_close and if_not_lane_change)
+	{
+                        ref_vel -=0.224;
+	 else if (ref_vel < max_velo and if)
+	{
+	            ref_vel +=0.224;
+	}
+  
+   
 ```
 
-Above, I limited lane changes only to next one at a time. To change a lane the lane reward of the new lane should be slightly higher to avoid oscillation between lanes, as well as to reinforce the idea to have a good reason to have a lane change. Here I used variable ```lane_bias``` to adjust this. Values between 1.2 and 2 provided the good compromise. Also if the reward is low, even it is more than our own lane, we should keep our lane and just adjust our speed. Then we adjust our speed again to make it slower or faster. 
-
+Above, I limited lane changes to one lane one at a time. To change a lane the lane reward of the new lane should be slightly higher to avoid oscillation between lanes, as well as to reinforce the idea to have a good reason to have a lane change. Here I used variable ```lane_bias``` to adjust this. Curren bias 1.3 and this provided the good compromise. Also if the reward is low, even it is more than our own lane reward, we should keep our lane and just adjust our speed. Then we adjust our speed again to make it slower or faster. 
 
 
 (3) Identify the next path based on the lane change or no lane change.
